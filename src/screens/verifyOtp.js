@@ -14,8 +14,9 @@ const VerifyOtp = ({route, navigation}) => {
   const [confirm, setConfirm] = useState(null);
   const [otpCode, setOtpCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
-  const [token, setToken] = useState('');
+  const [userToken, setUserToken] = useState('');
 
+  const name = route.params.name;
   const phoneNumber = route.params.phoneNumber;
 
   useEffect(() => {
@@ -27,7 +28,6 @@ const VerifyOtp = ({route, navigation}) => {
       const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
       setConfirm(confirmation);
     } catch (e) {
-      console.log(e);
       alert(JSON.stringify(e));
     }
   };
@@ -35,14 +35,12 @@ const VerifyOtp = ({route, navigation}) => {
   const confirmCode = async code => {
     try {
       const response = await confirm.confirm(code);
-      console.log('response>>>>>>', response.user.uid);
       if (response) {
         setIsVerified(true);
-        setToken(response.user.uid);
+        setUserToken(response.user.uid);
       }
     } catch (e) {
-      alert(JSON.stringify(e));
-      console.log(e);
+      alert('Invalid Code');
     }
   };
 
@@ -58,7 +56,7 @@ const VerifyOtp = ({route, navigation}) => {
           <View style={styles.button}>
             <Button
               title="OK"
-              onPress={() => navigation.navigate('Chat', {token})}
+              onPress={() => navigation.navigate('Chat', {name, userToken})}
             />
           </View>
         </>

@@ -11,10 +11,11 @@ import {
 
 const Login = ({route, navigation}) => {
   const [phoneNumber, setPhoneNumber] = useState('+91');
+  const [name, setName] = useState('');
 
   const GetOTP = () => {
     if (phoneNumber && phoneNumber.length > 12) {
-      navigation.navigate('VerifyOtp', {phoneNumber});
+      navigation.navigate('VerifyOtp', {name, phoneNumber});
     } else alert('Please enter 10 digit phone number');
   };
 
@@ -22,6 +23,12 @@ const Login = ({route, navigation}) => {
     <View style={styles.container}>
       <Image style={styles.image} source={require('../asserts/chat.gif')} />
       <Text style={styles.title}>ChatApp</Text>
+      <TextInput
+        style={styles.inputField}
+        value={name}
+        placeholder="Enter name"
+        onChangeText={e => setName(e)}
+      />
       <TextInput
         style={styles.inputField}
         value={phoneNumber}
