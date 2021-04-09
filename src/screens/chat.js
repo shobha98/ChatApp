@@ -134,7 +134,7 @@ const VerifyOtp = ({route}) => {
                       </View>
                       <Text style={styles.msgText}>{item.text}</Text>
                       <Text style={styles.timeText}>
-                        {moment(item.timestamp).format('H:mm a')}
+                        {moment(item.timestamp).format('h:mm a')}
                       </Text>
                     </View>
                   </>
