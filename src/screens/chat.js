@@ -26,13 +26,19 @@ if (!firebase.apps.length) {
 
 const VerifyOtp = ({route}) => {
   const scrollViewRef = useRef();
-  const name = route.params.name;
-  const userToken = route.params.userToken;
   const [msgToSend, setMsgToSend] = useState('');
   const [chats, setChats] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  // const [date, setDate] = useState('');
-  // const [count, setCount] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const currUser = route?.params.currUser;
+  const groupChat = route?.params.groupChat;
+  const anotherUser = groupChat ? '' : route?.params.item;
+
+  const collectionName = groupChat
+    ? 'chats/group'
+    : currUser.userId > anotherUser.userId
+    ? 'chats/oneToOne/' + currUser.userId + '-' + anotherUser.userId + '/'
+    : 'chats/oneToOne/' + anotherUser.userId + '-' + currUser.userId + '/';
 
   useEffect(() => {
     getChats();
@@ -42,12 +48,12 @@ const VerifyOtp = ({route}) => {
     setIsLoading(true);
     firebase
       .database()
-      .ref('chats/')
+      .ref(collectionName)
       .push({
         text: msgToSend.trim(),
         timestamp: firebase.database.ServerValue.TIMESTAMP,
-        user: userToken,
-        name,
+        user: currUser.userId,
+        name: currUser.name,
       })
       .then(response => {
         setMsgToSend('');
@@ -59,14 +65,14 @@ const VerifyOtp = ({route}) => {
   };
 
   const getChats = () => {
+    setIsLoading(true);
     firebase
       .database()
-      .ref('chats/')
+      .ref(collectionName)
       .on('value', function (snapshot) {
         setIsLoading(false);
         const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
         setChats(list);
-        // setDate(moment(list[0].timestamp).format('D MMMM YYYY'));
       });
   };
 
@@ -81,6 +87,17 @@ const VerifyOtp = ({route}) => {
         </View>
       ) : (
         <>
+          <View style={styles.card}>
+            <View style={styles.profile} />
+            {groupChat ? (
+              <Text style={styles.profileName}>GroupChat</Text>
+            ) : (
+              <>
+                <Text style={styles.profileName}>{anotherUser.name}</Text>
+                <Text style={styles.phoneText}>{anotherUser.phoneNumber}</Text>
+              </>
+            )}
+          </View>
           <View style={styles.msgContainer}>
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -89,43 +106,17 @@ const VerifyOtp = ({route}) => {
                 scrollViewRef.current.scrollToEnd({animated: true})
               }>
               {chats.map((item, val) => {
-                {
-                  /* const prevDate = moment(chats[val - 1].timestamp).format(
-                  'D MMMM YYYY',
-                );
-                const currDate = moment(item.timestamp).format('D MMMM YYYY'); */
-                }
-                {
-                  /* if (val === 0) {
-                  const prevDate = '';
-                  const currDate = moment(chats[val].timestamp).format(
-                    'D MMMM YYYY',
-                  );
-                } else {
-                  const prevDate = moment(chats[val - 1].timestamp).format(
-                    'D MMMM YYYY',
-                  );
-                  const currDate = moment(chats[val].timestamp).format(
-                    'D MMMM YYYY',
-                  );
-                } */
-                }
-
                 return (
                   <>
-                    {/* {prevDate === currDate ? (
-                      <></>
-                    ) : ( */}
                     <View style={styles.dateView}>
                       <Text style={styles.dateText}>
-                        {moment().format('D MMMM YYYY')}
+                        {moment(item.timestamp).format('D MMMM YYYY')}
                       </Text>
                     </View>
-                    {/* )} */}
 
                     <View
                       style={
-                        item.user === userToken
+                        item.user === currUser.userId
                           ? [styles.msgView, styles.rightAlgin]
                           : [styles.msgView, styles.leftAlign]
                       }>
@@ -167,9 +158,7 @@ export default VerifyOtp;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'lightpink',
     alignItems: 'center',
-    padding: 15,
   },
   msgContainer: {
     flex: 1,
@@ -241,5 +230,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,.3)',
     padding: 5,
     borderRadius: 5,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,.3)',
+  },
+  profile: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(0,0,0,.3)',
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  profileName: {
+    fontSize: 20,
+    alignSelf: 'flex-start',
+    color: 'black',
+    flex: 1,
+  },
+  phoneText: {
+    color: 'black',
+    fontSize: 15,
+    opacity: 0.6,
+  },
+  divider: {
+    borderWidth: 1,
+    marginHorizontal: 10,
+    opacity: 0.3,
+    marginLeft: 50,
   },
 });

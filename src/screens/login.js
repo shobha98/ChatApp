@@ -9,13 +9,14 @@ import {
   Text,
 } from 'react-native';
 
-const Login = ({route, navigation}) => {
+const {width, height} = Dimensions.get('window');
+
+const Login = ({navigation}) => {
   const [phoneNumber, setPhoneNumber] = useState('+91');
-  const [name, setName] = useState('');
 
   const GetOTP = () => {
     if (phoneNumber && phoneNumber.length > 12) {
-      navigation.navigate('VerifyOtp', {name, phoneNumber});
+      navigation.navigate('VerifyOtp', {phoneNumber});
     } else alert('Please enter 10 digit phone number');
   };
 
@@ -23,12 +24,6 @@ const Login = ({route, navigation}) => {
     <View style={styles.container}>
       <Image style={styles.image} source={require('../asserts/chat.gif')} />
       <Text style={styles.title}>ChatApp</Text>
-      <TextInput
-        style={styles.inputField}
-        value={name}
-        placeholder="Enter name"
-        onChangeText={e => setName(e)}
-      />
       <TextInput
         style={styles.inputField}
         value={phoneNumber}
@@ -49,13 +44,12 @@ export default Login;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'lightpink',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   image: {
     width: 150,
     height: 150,
-    marginTop: 100,
   },
   title: {
     fontSize: 30,

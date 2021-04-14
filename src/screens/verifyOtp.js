@@ -9,14 +9,27 @@ import {
   Text,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import * as firebase from 'firebase';
+
+const firebaseConfig = {
+  databaseURL: 'https://chatapp-e7cdb-default-rtdb.firebaseio.com/',
+  projectId: 'chatapp-e7cdb-default-rtdb',
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 const VerifyOtp = ({route, navigation}) => {
   const [confirm, setConfirm] = useState(null);
   const [otpCode, setOtpCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [userToken, setUserToken] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [usersList, setUsersList] = useState([]);
+  const [isName, setIsName] = useState(false);
+  const [name, setName] = useState('');
 
-  const name = route.params.name;
   const phoneNumber = route.params.phoneNumber;
 
   useEffect(() => {
@@ -24,57 +37,132 @@ const VerifyOtp = ({route, navigation}) => {
   }, []);
 
   const signInWithPhoneNumber = async phoneNumber => {
+    setIsLoading(true);
     try {
       const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
       setConfirm(confirmation);
+      setIsLoading(false);
     } catch (e) {
-      alert(JSON.stringify(e));
+      alert(e);
+      setIsLoading(false);
     }
   };
 
   const confirmCode = async code => {
+    setIsLoading(true);
     try {
       const response = await confirm.confirm(code);
+      setIsLoading(false);
       if (response) {
         setIsVerified(true);
         setUserToken(response.user.uid);
       }
     } catch (e) {
       alert('Invalid Code');
+      setIsLoading(false);
     }
+  };
+
+  const getUsers = () => {
+    setIsLoading(true);
+    setIsVerified(false);
+    firebase
+      .database()
+      .ref('users/')
+      .on('value', function (snapshot) {
+        setIsLoading(false);
+        const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+        setUsersList(list);
+        const users = list.map(item => item.phoneNumber);
+        if (users.indexOf(phoneNumber) == -1) {
+          setIsName(true);
+        } else {
+          navigation.navigate('UserList', {list, phoneNumber});
+        }
+      });
+  };
+
+  const addUser = async name => {
+    setIsLoading(true);
+    firebase
+      .database()
+      .ref('users/')
+      .push({
+        phoneNumber,
+        userId: userToken,
+        name,
+      })
+      .then(response => {
+        setIsLoading(false);
+        const list = [...usersList, {name, phoneNumber, userId: userToken}];
+        navigation.navigate('UserList', {list, phoneNumber});
+      })
+      .catch(error => {
+        setIsLoading(false);
+        console.log('error ', error);
+      });
   };
 
   return (
     <View style={styles.container}>
-      {isVerified ? (
-        <>
+      {isLoading ? (
+        <View style={{flex: 1, justifyContent: 'center'}}>
           <Image
-            style={styles.image}
-            source={require('../asserts/verified.gif')}
+            style={styles.loading}
+            source={require('../asserts/loading.gif')}
           />
-          <Text style={styles.title}>Verified</Text>
-          <View style={styles.button}>
-            <Button
-              title="OK"
-              onPress={() => navigation.navigate('Chat', {name, userToken})}
-            />
-          </View>
-        </>
+        </View>
       ) : (
         <>
-          <Text style={styles.title}>OTP Verification for</Text>
-          <Text style={styles.title}>{phoneNumber}</Text>
-          <TextInput
-            style={styles.inputField}
-            value={otpCode}
-            placeholder="Enter OTP"
-            maxLength={6}
-            keyboardType={'numeric'}
-            onChangeText={e => setOtpCode(e)}
-          />
-          <View style={styles.button}>
-            <Button title="Verify" onPress={() => confirmCode(otpCode)} />
-          </View>
+          {isVerified ? (
+            <>
+              <Image
+                style={styles.image}
+                source={require('../asserts/verified.gif')}
+              />
+              <Text style={styles.title}>Verified</Text>
+              <View style={styles.button}>
+                <Button title="OK" onPress={() => getUsers()} />
+              </View>
+            </>
+          ) : (
+            <>
+              {isName ? (
+                <>
+                  <Text style={styles.title}>Enter Name for </Text>
+                  <Text style={styles.title}>{phoneNumber}</Text>
+                  <TextInput
+                    style={styles.inputField}
+                    value={name}
+                    placeholder="Enter Name"
+                    onChangeText={e => setName(e)}
+                  />
+                  <View style={styles.button}>
+                    <Button title="Verify" onPress={() => addUser(name)} />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.title}>OTP Verification for</Text>
+                  <Text style={styles.title}>{phoneNumber}</Text>
+                  <TextInput
+                    style={styles.inputField}
+                    value={otpCode}
+                    placeholder="Enter OTP"
+                    maxLength={6}
+                    keyboardType={'numeric'}
+                    onChangeText={e => setOtpCode(e)}
+                  />
+                  <View style={styles.button}>
+                    <Button
+                      title="Verify"
+                      onPress={() => confirmCode(otpCode)}
+                    />
+                  </View>
+                </>
+              )}
+            </>
+          )}
         </>
       )}
     </View>
@@ -86,7 +174,6 @@ export default VerifyOtp;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'lightpink',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -112,5 +199,9 @@ const styles = StyleSheet.create({
   button: {
     width: 100,
     marginTop: 30,
+  },
+  loading: {
+    width: 40,
+    height: 40,
   },
 });
