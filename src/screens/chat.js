@@ -1,5 +1,5 @@
 // @refresh reset
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   TextInput,
@@ -10,26 +10,22 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import * as firebase from 'firebase';
+// import * as firebase from 'firebase';
+import database from '@react-native-firebase/database';
 import moment from 'moment';
 
 const {width} = Dimensions.get('window');
 
-const firebaseConfig = {
-  databaseURL: 'https://chatapp-e7cdb-default-rtdb.firebaseio.com/',
-  projectId: 'chatapp-e7cdb-default-rtdb',
-};
+// const firebaseConfig = {
+//   databaseURL: 'https://chatapp-180c3-default-rtdb.firebaseio.com/',
+//   projectId: 'chatapp-180c3-default-rtdb',
+// };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// if (!firebase.apps.length) {
+//   firebase.initializeApp(firebaseConfig);
+// }
 
 const VerifyOtp = ({route}) => {
-  const scrollViewRef = useRef();
-  const [msgToSend, setMsgToSend] = useState('');
-  const [chats, setChats] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
   const currUser = route?.params.currUser;
   const groupChat = route?.params.groupChat;
   const anotherUser = groupChat ? '' : route?.params.item;
@@ -40,18 +36,23 @@ const VerifyOtp = ({route}) => {
     ? 'chats/oneToOne/' + currUser.userId + '-' + anotherUser.userId + '/'
     : 'chats/oneToOne/' + anotherUser.userId + '-' + currUser.userId + '/';
 
+  const scrollViewRef = useRef();
+  const databaseRef = useRef(database().ref(collectionName));
+
+  const [msgToSend, setMsgToSend] = useState('');
+  const [chats, setChats] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     getChats();
   }, []);
 
-  const handleSend = async () => {
+  const handleSend = () => {
     setIsLoading(true);
-    firebase
-      .database()
-      .ref(collectionName)
+    databaseRef.current
       .push({
         text: msgToSend.trim(),
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        timestamp: new Date().getTime(),
         user: currUser.userId,
         name: currUser.name,
       })
@@ -66,14 +67,11 @@ const VerifyOtp = ({route}) => {
 
   const getChats = () => {
     setIsLoading(true);
-    firebase
-      .database()
-      .ref(collectionName)
-      .on('value', function (snapshot) {
-        setIsLoading(false);
-        const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
-        setChats(list);
-      });
+    databaseRef.current.on('value', function (snapshot) {
+      const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+      setChats(list.reverse());
+      setIsLoading(false);
+    });
   };
 
   return (
@@ -190,6 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     marginTop: 20,
+    padding: 10,
   },
   inputField: {
     borderWidth: 0.3,

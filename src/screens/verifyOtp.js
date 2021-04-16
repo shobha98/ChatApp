@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   TextInput,
@@ -9,16 +9,18 @@ import {
   Text,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import * as firebase from 'firebase';
+import database from '@react-native-firebase/database';
 
-const firebaseConfig = {
-  databaseURL: 'https://chatapp-e7cdb-default-rtdb.firebaseio.com/',
-  projectId: 'chatapp-e7cdb-default-rtdb',
-};
+// import * as firebase from 'firebase';
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// const firebaseConfig = {
+//   databaseURL: 'https://chatapp-180c3-default-rtdb.firebaseio.com/',
+//   projectId: 'chatapp-180c3-default-rtdb',
+// };
+
+// if (!firebase.apps.length) {
+//   firebase.initializeApp(firebaseConfig);
+// }
 
 const VerifyOtp = ({route, navigation}) => {
   const [confirm, setConfirm] = useState(null);
@@ -29,6 +31,7 @@ const VerifyOtp = ({route, navigation}) => {
   const [usersList, setUsersList] = useState([]);
   const [isName, setIsName] = useState(false);
   const [name, setName] = useState('');
+  const databaseRef = useRef(database().ref('users/'));
 
   const phoneNumber = route.params.phoneNumber;
 
@@ -63,30 +66,25 @@ const VerifyOtp = ({route, navigation}) => {
     }
   };
 
-  const getUsers = () => {
+  const getUsers = useCallback(() => {
     setIsLoading(true);
     setIsVerified(false);
-    firebase
-      .database()
-      .ref('users/')
-      .on('value', function (snapshot) {
-        setIsLoading(false);
-        const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
-        setUsersList(list);
-        const users = list.map(item => item.phoneNumber);
-        if (users.indexOf(phoneNumber) == -1) {
-          setIsName(true);
-        } else {
-          navigation.navigate('UserList', {list, phoneNumber});
-        }
-      });
-  };
+    databaseRef.current.on('value', function (snapshot) {
+      setIsLoading(false);
+      const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+      setUsersList(list);
+      const users = list.map(item => item.phoneNumber);
+      if (users.indexOf(phoneNumber) == -1) {
+        setIsName(true);
+      } else {
+        navigation.navigate('UserList', {list, phoneNumber});
+      }
+    });
+  }, []);
 
   const addUser = async name => {
     setIsLoading(true);
-    firebase
-      .database()
-      .ref('users/')
+    databaseRef.current
       .push({
         phoneNumber,
         userId: userToken,
