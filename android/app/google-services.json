@@ -1,41 +1,33 @@
 {
   "project_info": {
-    "project_number": "788615818154",
-    "project_id": "chatapp-e7cdb",
-    "storage_bucket": "chatapp-e7cdb.appspot.com"
+    "project_number": "50547814821",
+    "project_id": "chatapp-180c3",
+    "storage_bucket": "chatapp-180c3.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:788615818154:android:5aaea1bd5570bfb97099d3",
+        "mobilesdk_app_id": "1:50547814821:android:4e041525a01cf62573f84c",
         "android_client_info": {
           "package_name": "com.chatapp"
         }
       },
       "oauth_client": [
         {
-          "client_id": "788615818154-art89huupvctbthn0ia52kie8pu9mu01.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.chatapp",
-            "certificate_hash": "bef5510bdba0d2d6df67834ca1af279a458a260e"
-          }
-        },
-        {
-          "client_id": "788615818154-vi9vffm24fkfh5vl754qaikrc287kmi1.apps.googleusercontent.com",
+          "client_id": "50547814821-ql9ruao31683uh08ev3rtubhiibmasdd.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyB7l1A1-S_psSIy4RuvpYGueTTvIzY46TU"
+          "current_key": "AIzaSyAWTyVVBto2rZgTaHBRWTGqfcF0_NANBgA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "788615818154-vi9vffm24fkfh5vl754qaikrc287kmi1.apps.googleusercontent.com",
+              "client_id": "50547814821-ql9ruao31683uh08ev3rtubhiibmasdd.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

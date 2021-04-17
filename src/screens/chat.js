@@ -1,5 +1,4 @@
-// @refresh reset
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   TextInput,
@@ -10,26 +9,12 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import * as firebase from 'firebase';
+import database from '@react-native-firebase/database';
 import moment from 'moment';
 
 const {width} = Dimensions.get('window');
 
-const firebaseConfig = {
-  databaseURL: 'https://chatapp-e7cdb-default-rtdb.firebaseio.com/',
-  projectId: 'chatapp-e7cdb-default-rtdb',
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
 const VerifyOtp = ({route}) => {
-  const scrollViewRef = useRef();
-  const [msgToSend, setMsgToSend] = useState('');
-  const [chats, setChats] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
   const currUser = route?.params.currUser;
   const groupChat = route?.params.groupChat;
   const anotherUser = groupChat ? '' : route?.params.item;
@@ -40,40 +25,54 @@ const VerifyOtp = ({route}) => {
     ? 'chats/oneToOne/' + currUser.userId + '-' + anotherUser.userId + '/'
     : 'chats/oneToOne/' + anotherUser.userId + '-' + currUser.userId + '/';
 
+  const scrollViewRef = useRef();
+  const databaseRef = useRef(database().ref(collectionName));
+
+  const [msgToSend, setMsgToSend] = useState('');
+  const [chats, setChats] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    getChats();
+    (async () => {
+      setIsLoading(true);
+      const temp = await getChats();
+      setIsLoading(false);
+    })();
   }, []);
 
-  const handleSend = async () => {
-    setIsLoading(true);
-    firebase
-      .database()
-      .ref(collectionName)
+  const handleSend = () => {
+    databaseRef.current
       .push({
         text: msgToSend.trim(),
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        timestamp: new Date().getTime(),
         user: currUser.userId,
         name: currUser.name,
       })
       .then(response => {
-        setMsgToSend('');
         getChats();
       })
       .catch(error => {
         console.log('error ', error);
       });
+    setMsgToSend('');
   };
 
   const getChats = () => {
-    setIsLoading(true);
-    firebase
-      .database()
-      .ref(collectionName)
-      .on('value', function (snapshot) {
-        setIsLoading(false);
-        const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
-        setChats(list);
-      });
+    return new Promise((resolve, reject) => {
+      try {
+        databaseRef.current.on('value', snapshot => {
+          const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+          setChats(
+            list.sort(function (x, y) {
+              return x.timestamp - y.timestamp;
+            }),
+          );
+          resolve(true);
+        });
+      } catch (e) {
+        reject(false);
+      }
+    });
   };
 
   return (
@@ -108,11 +107,11 @@ const VerifyOtp = ({route}) => {
               {chats.map((item, val) => {
                 return (
                   <>
-                    <View style={styles.dateView}>
+                    {/* <View style={styles.dateView}>
                       <Text style={styles.dateText}>
                         {moment(item.timestamp).format('D MMMM YYYY')}
                       </Text>
-                    </View>
+                    </View> */}
 
                     <View
                       style={
@@ -163,13 +162,13 @@ const styles = StyleSheet.create({
   msgContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    width: width - 30,
+    width: width - 20,
   },
   msgView: {
     borderRadius: 10,
     elevation: 10,
     padding: 10,
-    marginVertical: 15,
+    marginBottom: 15,
     maxWidth: width * 0.7,
   },
   msgText: {
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginTop: 20,
+    padding: 10,
   },
   inputField: {
     borderWidth: 0.3,
