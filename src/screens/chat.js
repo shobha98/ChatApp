@@ -1,4 +1,3 @@
-// @refresh reset
 import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
@@ -10,20 +9,10 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-// import * as firebase from 'firebase';
 import database from '@react-native-firebase/database';
 import moment from 'moment';
 
 const {width} = Dimensions.get('window');
-
-// const firebaseConfig = {
-//   databaseURL: 'https://chatapp-180c3-default-rtdb.firebaseio.com/',
-//   projectId: 'chatapp-180c3-default-rtdb',
-// };
-
-// if (!firebase.apps.length) {
-//   firebase.initializeApp(firebaseConfig);
-// }
 
 const VerifyOtp = ({route}) => {
   const currUser = route?.params.currUser;
@@ -44,11 +33,14 @@ const VerifyOtp = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    getChats();
+    (async () => {
+      setIsLoading(true);
+      const temp = await getChats();
+      setIsLoading(false);
+    })();
   }, []);
 
   const handleSend = () => {
-    setIsLoading(true);
     databaseRef.current
       .push({
         text: msgToSend.trim(),
@@ -57,20 +49,29 @@ const VerifyOtp = ({route}) => {
         name: currUser.name,
       })
       .then(response => {
-        setMsgToSend('');
         getChats();
       })
       .catch(error => {
         console.log('error ', error);
       });
+    setMsgToSend('');
   };
 
   const getChats = () => {
-    setIsLoading(true);
-    databaseRef.current.on('value', function (snapshot) {
-      const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
-      setChats(list.reverse());
-      setIsLoading(false);
+    return new Promise((resolve, reject) => {
+      try {
+        databaseRef.current.on('value', snapshot => {
+          const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+          setChats(
+            list.sort(function (x, y) {
+              return x.timestamp - y.timestamp;
+            }),
+          );
+          resolve(true);
+        });
+      } catch (e) {
+        reject(false);
+      }
     });
   };
 
@@ -106,11 +107,11 @@ const VerifyOtp = ({route}) => {
               {chats.map((item, val) => {
                 return (
                   <>
-                    <View style={styles.dateView}>
+                    {/* <View style={styles.dateView}>
                       <Text style={styles.dateText}>
                         {moment(item.timestamp).format('D MMMM YYYY')}
                       </Text>
-                    </View>
+                    </View> */}
 
                     <View
                       style={
@@ -161,13 +162,13 @@ const styles = StyleSheet.create({
   msgContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    width: width - 30,
+    width: width - 20,
   },
   msgView: {
     borderRadius: 10,
     elevation: 10,
     padding: 10,
-    marginVertical: 15,
+    marginBottom: 15,
     maxWidth: width * 0.7,
   },
   msgText: {
@@ -187,7 +188,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginTop: 20,
     padding: 10,
   },
   inputField: {
