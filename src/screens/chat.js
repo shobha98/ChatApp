@@ -11,13 +11,19 @@ import {
 } from 'react-native';
 import database from '@react-native-firebase/database';
 import moment from 'moment';
+import lodash from 'lodash';
+
+import Header from '../components/header';
+import {Images} from '../asserts';
 
 const {width} = Dimensions.get('window');
 
-const VerifyOtp = ({route}) => {
+const Chat = ({route}) => {
   const currUser = route?.params.currUser;
   const groupChat = route?.params.groupChat;
   const anotherUser = groupChat ? '' : route?.params.item;
+  const screenName = route?.params.screenName;
+  const navigation = route?.params.navigation;
 
   const collectionName = groupChat
     ? 'chats/group'
@@ -62,6 +68,7 @@ const VerifyOtp = ({route}) => {
       try {
         databaseRef.current.on('value', snapshot => {
           const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
+          console.log('List>>>', list);
           setChats(
             list.sort(function (x, y) {
               return x.timestamp - y.timestamp;
@@ -77,26 +84,13 @@ const VerifyOtp = ({route}) => {
 
   return (
     <View style={styles.container}>
+      <Header screenName={screenName} navigation={navigation} />
       {isLoading ? (
         <View style={{flex: 1, justifyContent: 'center'}}>
-          <Image
-            style={styles.loading}
-            source={require('../asserts/loading.gif')}
-          />
+          <Image style={styles.loading} source={Images.loader} />
         </View>
       ) : (
         <>
-          <View style={styles.card}>
-            <View style={styles.profile} />
-            {groupChat ? (
-              <Text style={styles.profileName}>GroupChat</Text>
-            ) : (
-              <>
-                <Text style={styles.profileName}>{anotherUser.name}</Text>
-                <Text style={styles.phoneText}>{anotherUser.phoneNumber}</Text>
-              </>
-            )}
-          </View>
           <View style={styles.msgContainer}>
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -120,7 +114,9 @@ const VerifyOtp = ({route}) => {
                           : [styles.msgView, styles.leftAlign]
                       }>
                       <View style={styles.nameView}>
-                        <Text style={styles.nameText}>{item.name}</Text>
+                        <Text style={styles.nameText}>
+                          {item.user === currUser.userId ? 'you' : item.name}
+                        </Text>
                       </View>
                       <Text style={styles.msgText}>{item.text}</Text>
                       <Text style={styles.timeText}>
@@ -152,17 +148,18 @@ const VerifyOtp = ({route}) => {
   );
 };
 
-export default VerifyOtp;
+export default Chat;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
   },
   msgContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    // justifyContent: 'flex-end',
     width: width - 20,
+    alignSelf: 'center',
+    marginTop: 5,
   },
   msgView: {
     borderRadius: 10,
