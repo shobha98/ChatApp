@@ -7,10 +7,15 @@ import {
   Image,
   Button,
   Text,
+  TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
+import {useDispatch} from 'react-redux';
+import {getIsUserLoggedIn} from '../Redux/actions';
+
+import {Images} from '../asserts';
 
 const {width, height} = Dimensions.get('window');
 
@@ -22,21 +27,27 @@ const Login = ({navigation}) => {
   const [otpCode, setOtpCode] = useState('');
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
+  const [error, setError] = useState(false);
   const databaseRef = useRef(database().ref('users/'));
+  const dispatch = useDispatch();
 
   useEffect(() => {
     checkIsLoggedIn();
   }, []);
 
   const signInWithPhoneNumber = async () => {
-    setIsLoading(true);
-    try {
-      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
-      setConfirm(confirmation);
-      setIsLoading(false);
-    } catch (e) {
-      alert(e);
-      setIsLoading(false);
+    if (phoneNumber == '' || phoneNumber.length < 13) {
+      setError(true);
+    } else {
+      setIsLoading(true);
+      try {
+        const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+        setConfirm(confirmation);
+        setIsLoading(false);
+      } catch (e) {
+        alert(e);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -53,10 +64,15 @@ const Login = ({navigation}) => {
         setUserId(response.user.uid);
         AsyncStorage.setItem('user', JSON.stringify(user))
           .then(() => {
+            dispatch(getIsUserLoggedIn({isLoggedIn: true}));
             setConfirm(null);
             if (response.additionalUserInfo.isNewUser) {
               setIsName(true);
             } else {
+              setIsName(false);
+              setName('');
+              setOtpCode('');
+              setPhoneNumber('');
               navigation.navigate('UserList');
             }
           })
@@ -66,7 +82,8 @@ const Login = ({navigation}) => {
         setIsLoading(false);
       })
       .catch(err => {
-        alert('Invalid Code');
+        // alert('Invalid Code');
+        setError(true);
         setIsLoading(false);
       });
   };
@@ -75,6 +92,10 @@ const Login = ({navigation}) => {
     try {
       const user = await AsyncStorage.getItem('user');
       if (user !== null) {
+        setIsName(false);
+        setName('');
+        setOtpCode('');
+        setPhoneNumber('');
         navigation.navigate('UserList');
       }
       setIsLoading(false);
@@ -85,30 +106,31 @@ const Login = ({navigation}) => {
 
   const addUser = () => {
     setIsLoading(true);
-    databaseRef.current
-      .push({
-        userId,
-        phoneNumber,
-        name,
-      })
-      .then(response => {
-        setIsLoading(false);
-        navigation.navigate('UserList');
-      })
-      .catch(error => {
-        setIsLoading(false);
-        console.log('error ', error);
-      });
+    if (name === '') {
+      setError(true);
+    } else {
+      databaseRef.current
+        .push({
+          userId,
+          phoneNumber,
+          name,
+        })
+        .then(() => {
+          setIsLoading(false);
+          navigation.navigate('UserList');
+        })
+        .catch(error => {
+          setIsLoading(false);
+          console.log('error ', error);
+        });
+    }
   };
 
   return (
     <View style={styles.container}>
       {isLoading ? (
         <View style={{flex: 1, justifyContent: 'center'}}>
-          <Image
-            style={styles.loading}
-            source={require('../asserts/loading.gif')}
-          />
+          <Image style={styles.loading} source={Images.loader} />
         </View>
       ) : (
         <>
@@ -120,11 +142,15 @@ const Login = ({navigation}) => {
                 style={styles.inputField}
                 value={name}
                 placeholder="Enter Name"
-                onChangeText={e => setName(e)}
+                onChangeText={e => {
+                  setName(e);
+                  setError(false);
+                }}
               />
-              <View style={styles.button}>
-                <Button title="Submit" onPress={() => addUser()} />
-              </View>
+              {error && <Text style={styles.errorText}>Name is required</Text>}
+              <TouchableOpacity style={styles.button} onPress={() => addUser()}>
+                <Text style={styles.buttonText}>Submit</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -138,18 +164,21 @@ const Login = ({navigation}) => {
                     placeholder="Enter OTP"
                     maxLength={6}
                     keyboardType={'numeric'}
-                    onChangeText={e => setOtpCode(e)}
+                    onChangeText={e => {
+                      setOtpCode(e);
+                      setError(false);
+                    }}
                   />
-                  <View style={styles.button}>
-                    <Button title="Verify" onPress={() => confirmCode()} />
-                  </View>
+                  {error && <Text style={styles.errorText}>Invalid OTP</Text>}
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => confirmCode()}>
+                    <Text style={styles.buttonText}>Verify</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <Image
-                    style={styles.image}
-                    source={require('../asserts/chat.gif')}
-                  />
+                  <Image style={styles.image} source={Images.chat} />
                   <Text style={styles.title}>ChatApp</Text>
                   <TextInput
                     style={styles.inputField}
@@ -157,14 +186,21 @@ const Login = ({navigation}) => {
                     placeholder="Enter phone number"
                     maxLength={13}
                     keyboardType={'numeric'}
-                    onChangeText={e => setPhoneNumber(e)}
+                    onChangeText={e => {
+                      setPhoneNumber(e);
+                      setError(false);
+                    }}
                   />
-                  <View style={styles.button}>
-                    <Button
-                      title="Send Otp"
-                      onPress={() => signInWithPhoneNumber()}
-                    />
-                  </View>
+                  {error && (
+                    <Text style={styles.errorText}>
+                      Please enter valid number
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => signInWithPhoneNumber()}>
+                    <Text style={styles.buttonText}>Send OTP</Text>
+                  </TouchableOpacity>
                 </>
               )}
             </>
@@ -198,16 +234,26 @@ const styles = StyleSheet.create({
     color: '#649efa',
   },
   inputField: {
-    borderWidth: 0.3,
+    borderBottomWidth: 1,
     marginTop: 50,
     width: width - 100,
-    backgroundColor: 'white',
-    elevation: 10,
     fontSize: 25,
     color: 'black',
   },
   button: {
-    width: 100,
-    marginTop: 30,
+    backgroundColor: 'blue',
+    width: 200,
+    borderRadius: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    padding: 10,
+    marginTop: 20,
+  },
+  buttonText: {
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  errorText: {
+    color: 'red',
   },
 });

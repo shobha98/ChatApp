@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import database from '@react-native-firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Header from '../components/header';
+
+import {Images} from '../asserts';
 
 const UserList = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,29 +20,30 @@ const UserList = ({navigation}) => {
   const databaseRef = useRef(database().ref('users/'));
 
   useEffect(() => {
-    getCurrUser();
+    (async () => {
+      setIsLoading(true);
+      const temp = await getCurrUser();
+      setIsLoading(false);
+    })();
+    // getCurrUser();
   }, []);
 
-  const signOut = () => {
-    AsyncStorage.clear()
-      .then(res => {
-        // navigation.navigate('Login');
-      })
-      .catch(err => {
-        console.log('err', err);
-      });
-    return true;
-  };
-
   const getCurrUser = () => {
-    setIsLoading(true);
-    AsyncStorage.getItem('user')
-      .then(res => {
-        getUserList(JSON.parse(res));
-      })
-      .catch(e => {
-        console.log('error', e);
-      });
+    // setIsLoading(true);
+    return new Promise((resolve, reject) => {
+      try {
+        AsyncStorage.getItem('user')
+          .then(res => {
+            getUserList(JSON.parse(res));
+          })
+          .catch(e => {
+            console.log('error', e);
+          });
+        resolve(true);
+      } catch (e) {
+        reject(false);
+      }
+    });
   };
 
   const getUserList = user => {
@@ -47,21 +51,26 @@ const UserList = ({navigation}) => {
       const list = snapshot?.val() ? Object.values(snapshot.val()) : [];
       let name = '';
       list.map(item => {
-        if (item.phoneNumber === user.phoneNumber) {
+        if (item?.phoneNumber === user?.phoneNumber) {
           name = item.name;
         }
       });
       const newUserList = list.filter(item => {
-        return item.phoneNumber !== user.phoneNumber;
+        return item?.phoneNumber !== user?.phoneNumber;
       });
       setUsersList(newUserList);
       setCurrUser({...user, name});
-      setIsLoading(false);
     });
   };
 
   return (
     <View style={styles.container}>
+      <Header
+        screenName="ChatApp"
+        isProfile={true}
+        navigation={navigation}
+        currUser={currUser}
+      />
       {isLoading ? (
         <View
           style={{
@@ -69,55 +78,52 @@ const UserList = ({navigation}) => {
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-          <Image
-            style={styles.loading}
-            source={require('../asserts/loading.gif')}
-          />
+          <Image style={styles.loading} source={Images.loader} />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={{flexDirection: 'row', margin: 5}}>
-            <View style={styles.userProfile}>
-              <Text style={styles.signOutText}>Logged in as</Text>
-              <View style={{flexDirection: 'row'}}>
-                <Text style={[styles.signOutText, {flex: 1}]}>
-                  {currUser.name}
-                </Text>
-                <Text style={styles.signOutText}>{currUser.phoneNumber}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.signOut} onPress={() => signOut()}>
-              <Text style={styles.signOutText}>Sign Out</Text>
+        <>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  currUser,
+                  groupChat: true,
+                  screenName: 'Common Chat',
+                  navigation,
+                })
+              }>
+              <View style={styles.profile} />
+              <Text style={styles.nameText}>Common Chat</Text>
             </TouchableOpacity>
-          </View>
+            {usersList?.length !== 0 &&
+              usersList?.map(item => (
+                <>
+                  <View style={styles.divider} />
+                  <TouchableOpacity
+                    style={styles.card}
+                    onPress={() =>
+                      navigation.navigate('Chat', {
+                        currUser,
+                        item,
+                        groupChat: false,
+                        screenName: item?.name,
+                        navigation,
+                      })
+                    }>
+                    <View style={styles.profile} />
+                    <Text style={styles.nameText}>{item?.name}</Text>
+                    <Text style={styles.phoneText}>{item?.phoneNumber}</Text>
+                  </TouchableOpacity>
+                </>
+              ))}
+          </ScrollView>
           <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate('Chat', {currUser, groupChat: true})
-            }>
-            <View style={styles.profile} />
-            <Text style={styles.nameText}>Group Chat</Text>
+            style={styles.plusIcon}
+            onPress={() => navigation.navigate('CreateNewGroup', {currUser})}>
+            <Text style={styles.plusText}>Create New Group</Text>
           </TouchableOpacity>
-          {usersList.length !== 0 &&
-            usersList.map(item => (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.card}
-                  onPress={() =>
-                    navigation.navigate('Chat', {
-                      currUser,
-                      item,
-                      groupChat: false,
-                    })
-                  }>
-                  <View style={styles.profile} />
-                  <Text style={styles.nameText}>{item.name}</Text>
-                  <Text style={styles.phoneText}>{item.phoneNumber}</Text>
-                </TouchableOpacity>
-              </>
-            ))}
-        </ScrollView>
+        </>
       )}
     </View>
   );
@@ -130,7 +136,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    paddingVertical: 10,
+    padding: 5,
     marginHorizontal: 10,
     borderRadius: 10,
     marginTop: 10,
@@ -138,8 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nameText: {
-    fontSize: 20,
-    alignSelf: 'flex-start',
+    fontSize: 15,
     color: 'black',
     flex: 1,
   },
@@ -155,10 +160,10 @@ const styles = StyleSheet.create({
     marginLeft: 50,
   },
   profile: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     backgroundColor: 'rgba(0,0,0,.3)',
-    borderRadius: 20,
+    borderRadius: 15,
     marginRight: 10,
   },
   loading: {
@@ -171,25 +176,24 @@ const styles = StyleSheet.create({
     color: 'black',
     flex: 1,
   },
-  phoneText: {
-    color: 'black',
-    fontSize: 15,
-    opacity: 0.6,
-  },
-  signOut: {
-    backgroundColor: 'green',
-    padding: 10,
-    marginLeft: 5,
-    justifyContent: 'center',
-  },
-  signOutText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
   userProfile: {
     padding: 10,
     backgroundColor: 'rgba(0,0,0,.8)',
     flex: 1,
+  },
+  plusIcon: {
+    backgroundColor: 'blue',
+    padding: 10,
+    width: 200,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    bottom: 20,
+    position: 'absolute',
+  },
+  plusText: {
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
