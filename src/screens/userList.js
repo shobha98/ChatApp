@@ -25,11 +25,9 @@ const UserList = ({navigation}) => {
       const temp = await getCurrUser();
       setIsLoading(false);
     })();
-    // getCurrUser();
   }, []);
 
   const getCurrUser = () => {
-    // setIsLoading(true);
     return new Promise((resolve, reject) => {
       try {
         AsyncStorage.getItem('user')

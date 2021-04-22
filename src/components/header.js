@@ -11,8 +11,6 @@ import {
 const {width, height} = Dimensions.get('window');
 
 const Header = route => {
-  // console.log('header', route.isProfile);
-
   const {
     screenName = '',
     isProfile = false,

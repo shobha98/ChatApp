@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet, Button} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useDispatch} from 'react-redux';
 
@@ -9,11 +9,9 @@ import Header from '../components/header';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 
 const UserProfile = ({route, navigation}) => {
-  //   console.log('userProfile', route);
   const dispatch = useDispatch();
 
   const currUser = route?.params.currUser;
-  //   const navigation = route?.params.navigation;
 
   const userInfo = [
     {
