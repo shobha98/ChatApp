@@ -1,4 +1,3 @@
-import {CLIEngine} from 'eslint';
 import React from 'react';
 import {
   View,
